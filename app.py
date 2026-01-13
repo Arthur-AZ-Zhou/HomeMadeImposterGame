@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('app_secret_key', 'super_secret_local_key')
 
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel("gemini-flash-latest")
+model = genai.GenerativeModel("gemini-3-flash-preview")
 
 GAME_STATE = {
     "status": "lobby",
@@ -26,12 +26,12 @@ GAME_STATE = {
 def gemini_api_call(category):
     try:
         # UPDATED STRATEGY: 
-        # 1. Ask for a list of 12 items to prevent getting the same "top result" every time.
+        # 1. Ask for a list of 20 items to prevent getting the same "top result" every time.
         # 2. Added "unexpected or funny" to the prompt to spice up the variety.
         prompt = (
             f"I need a variety of options for the party game 'Imposter'. "
-            f"Give me a list of 12 distinct examples of '{category}'. "
-            f"Include a mix of popular options and some unexpected or funny ones. "
+            f"Give me a list of 20 distinct examples of '{category}'. "
+            f"Include a mix of popular options and some unpopular ones. "
             f"Respond with ONLY the words separated by commas. "
             f"Do not use numbering or bullet points. "
             f"Example output: Apple, Banana, Dragonfruit, Durian"
