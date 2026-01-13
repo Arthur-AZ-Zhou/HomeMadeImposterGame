@@ -1,0 +1,6 @@
+How 2 run:
+python app.py in one terminal
+ngrok http 5000 in another terminal
+
+host joins via http://localhost:5000/host
+everyone else joins based on what ngrok http 5000 spits out

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Host Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; text-align: center; }
+        input { padding: 10px; width: 70%; margin-bottom: 10px;}
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 5px; font-weight: bold;}
+        .btn-start { background: green; color: white; width: 100%; padding: 15px; font-size: 1.2rem; }
+        .btn-reset { background: #dc3545; color: white; font-size: 0.8rem; padding: 5px 10px; margin-left: 10px;}
+        .status-box { padding: 20px; background: #eee; margin-top: 20px; border-radius: 8px;}
+        .qr-section { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ddd;}
+        hr { margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <h1>🕵️ Imposter Host</h1>
+
+    <div class="qr-section">
+        <h3>1. Invite Players</h3>
+        <input type="text" id="ngrok-link" placeholder="Paste Ngrok Link here..." oninput="generateQR()">
+        <br>
+        <img id="qr-image" style="display:none; margin-top:10px; width: 200px; height: 200px;" />
+    </div>
+
+    <div>
+        <h3>2. Lobby (<span id="count">0</span>) 
+            <button class="btn-reset" onclick="resetGame()">Clear</button>
+        </h3>
+        <p id="players" style="font-weight: bold; color: #555;">Waiting for players...</p>
+    </div>
+    
+    <hr>
+    
+    <div id="setup">
+        <h3>3. Start Game</h3>
+        <input type="text" id="category" placeholder="Category (e.g. Fast Food)">
+        <br><br>
+        <button class="btn-start" onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="game-info" class="status-box" style="display:none;">
+        <h2>⚠️ Game Active!</h2>
+        <p>Tell everyone to check their phones.</p>
+        <p>Category: <strong id="cat-display"></strong></p>
+    </div>
+
+    <script>
+        // --- SMART QR CODE LOGIC ---
+        function generateQR() {
+            let link = document.getElementById('ngrok-link').value.trim();
+            
+            // 1. If box is empty, hide image
+            if(link.length < 3) {
+                document.getElementById('qr-image').style.display = 'none';
+                return;
+            }
+
+            // 2. AUTO-FIX: If they only typed the name (e.g. "toolless-luigi"), add the rest
+            if (!link.includes('.')) {
+                link = link + '.ngrok-free.dev';
+            }
+
+            // 3. AUTO-FIX: If missing https://, add it
+            if (!link.startsWith('http')) {
+                link = 'https://' + link;
+            }
+
+            // 4. Generate QR
+            const img = document.getElementById('qr-image');
+            img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(link)}`;
+            img.style.display = 'inline-block';
+        }
+
+        // --- GAME LOGIC ---
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                document.getElementById('players').innerText = data.players.join(", ") || "Waiting...";
+                document.getElementById('count').innerText = data.player_count;
+                
+                if(data.status === 'playing') {
+                    document.getElementById('setup').style.display = 'none';
+                    document.getElementById('game-info').style.display = 'block';
+                    document.getElementById('cat-display').innerText = data.category;
+                } else {
+                    document.getElementById('setup').style.display = 'block';
+                    document.getElementById('game-info').style.display = 'none';
+                }
+            } catch(e) {
+                console.log("Server not reachable yet...");
+            }
+        }, 2000);
+
+        async function startGame() {
+            const cat = document.getElementById('category').value;
+            if (!cat) return alert("Enter a category");
+            
+            await fetch('/api/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({category: cat})
+            });
+        }
+
+        async function resetGame() {
+            if(confirm("Reset lobby?")) {
+                await fetch('/api/reset', {method: 'POST'});
+                document.getElementById('category').value = '';
+            }
+        }
+    </script>
+</body>
+</html>

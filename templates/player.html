@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Imposter Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; padding: 20px; }
+        input { padding: 10px; font-size: 16px; width: 80%; margin-bottom: 10px; }
+        button { padding: 15px 30px; font-size: 18px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .hidden { display: none; }
+        .role-card { padding: 20px; margin-top: 20px; border-radius: 10px; }
+        .imposter { background: #dc3545; }
+        .civilian { background: #28a745; }
+        h1 { font-size: 2.5rem; }
+    </style>
+</head>
+<body>
+    <div id="login-screen">
+        <h2>Enter Name</h2>
+        <input type="text" id="username" placeholder="Your Name">
+        <br>
+        <button onclick="joinGame()">Join Game</button>
+        <p id="error-msg" style="color: red;"></p>
+    </div>
+
+    <div id="lobby-screen" class="hidden">
+        <h2>Waiting for Host...</h2>
+        <p>Players in lobby:</p>
+        <div id="player-list"></div>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div id="role-display" class="role-card">
+            </div>
+    </div>
+
+    <script>
+        let myName = "";
+
+        async function joinGame() {
+            const name = document.getElementById('username').value;
+            if(!name) return;
+
+            const res = await fetch('/api/join', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name: name})
+            });
+            const data = await res.json();
+            
+            if(data.error) {
+                document.getElementById('error-msg').innerText = data.error;
+            } else {
+                myName = data.name;
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('lobby-screen').classList.remove('hidden');
+                setInterval(pollStatus, 1000); // Start polling
+            }
+        }
+
+        async function pollStatus() {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+
+            // Update Player List
+            document.getElementById('player-list').innerText = data.players.join(", ");
+
+            // Switch Screens based on Status
+            if (data.status === 'lobby') {
+                document.getElementById('lobby-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('hidden');
+            } else if (data.status === 'playing') {
+                document.getElementById('lobby-screen').classList.add('hidden');
+                document.getElementById('game-screen').classList.remove('hidden');
+                renderGame(data);
+            }
+        }
+
+        function renderGame(data) {
+            const display = document.getElementById('role-display');
+            if (data.role === 'imposter') {
+                display.className = "role-card imposter";
+                display.innerHTML = `
+                    <h1>🤫 IMPOSTER</h1>
+                    <p>Try to blend in!</p>
+                    <p>Category: <strong>${data.category}</strong></p>
+                `;
+            } else {
+                display.className = "role-card civilian";
+                display.innerHTML = `
+                    <h1>CITIZEN</h1>
+                    <p>The secret word is:</p>
+                    <h1>${data.secret_word}</h1>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
