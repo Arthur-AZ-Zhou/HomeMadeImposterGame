@@ -34,64 +34,66 @@
             </div>
     </div>
 
-    <script>
-        let myName = "";
+<script>
+        let myName = ""; // This variable stays unique to THIS specific tab
 
         async function joinGame() {
-            const name = document.getElementById('username').value;
-            if(!name) return;
+            const nameInput = document.getElementById('username').value;
+            if(!nameInput) return;
 
             const res = await fetch('/api/join', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({name: name})
+                body: JSON.stringify({name: nameInput})
             });
             const data = await res.json();
             
             if(data.error) {
                 document.getElementById('error-msg').innerText = data.error;
             } else {
-                myName = data.name;
+                myName = data.name; // Save the name here
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('lobby-screen').classList.remove('hidden');
-                setInterval(pollStatus, 1000); // Start polling
+                
+                // Start polling
+                setInterval(pollStatus, 1000);
             }
         }
 
         async function pollStatus() {
-            const res = await fetch('/api/status');
+            // CRITICAL CHANGE: Send the name in the header!
+            const res = await fetch('/api/status', {
+                headers: {'X-Player-Name': myName}
+            });
+            
             const data = await res.json();
 
-            // Update Player List
+            // Update List
             document.getElementById('player-list').innerText = data.players.join(", ");
 
-            // Switch Screens based on Status
-            if (data.status === 'lobby') {
-                document.getElementById('lobby-screen').classList.remove('hidden');
-                document.getElementById('game-screen').classList.add('hidden');
-            } else if (data.status === 'playing') {
+            if (data.status === 'playing') {
                 document.getElementById('lobby-screen').classList.add('hidden');
                 document.getElementById('game-screen').classList.remove('hidden');
-                renderGame(data);
-            }
-        }
-
-        function renderGame(data) {
-            const display = document.getElementById('role-display');
-            if (data.role === 'imposter') {
-                display.className = "role-card imposter";
-                display.innerHTML = `
-                    <h1>🤫 IMPOSTER</h1>
-                    <p>Try to blend in!</p>
-                    <p>Category: <strong>${data.category}</strong></p>
-                `;
+                
+                const display = document.getElementById('role-display');
+                if (data.role === 'imposter') {
+                    display.className = "role-card imposter";
+                    display.innerHTML = `
+                        <h1>🤫 IMPOSTER</h1>
+                        <p>Category: <strong>${data.category}</strong></p>
+                        <p>Blend in!</p>
+                    `;
+                } else {
+                    display.className = "role-card civilian";
+                    display.innerHTML = `
+                        <h1>CITIZEN</h1>
+                        <p>Word: <strong>${data.secret_word}</strong></p>
+                    `;
+                }
             } else {
-                display.className = "role-card civilian";
-                display.innerHTML = `
-                    <h1>CITIZEN</h1>
-                    <p>The secret word is:</p>
-                    <h1>${data.secret_word}</h1>
-                `;
+                // If game resets, go back to lobby
+                document.getElementById('lobby-screen').classList.remove('hidden');
+                document.getElementById('game-screen').classList.add('hidden');
             }
         }
     </script>

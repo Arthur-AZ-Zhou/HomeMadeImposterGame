@@ -10,7 +10,7 @@ app = Flask(__name__)
 app.secret_key = os.getenv('app_secret_key', 'super_secret_local_key')
 
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel("gemini-2.5-flash")
+model = genai.GenerativeModel("gemini-flash-latest")
 
 GAME_STATE = {
     "status": "lobby",
@@ -70,7 +70,7 @@ def join_game():
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
-    player_name = session.get('player_name')
+    player_name = request.headers.get('X-Player-Name')
     
     response = {
         "status": GAME_STATE['status'],
@@ -101,6 +101,8 @@ def start_game():
 
     word = gemini_api_call(category)
     imposter = random.choice(GAME_STATE['players'])
+
+    print(f"DEBUG: The Imposter is {imposter}")
     
     GAME_STATE['status'] = 'playing'
     GAME_STATE['category'] = category
