@@ -25,18 +25,43 @@ GAME_STATE = {
 
 def gemini_api_call(category):
     try:
+        # UPDATED STRATEGY: 
+        # 1. Ask for a list of 12 items to prevent getting the same "top result" every time.
+        # 2. Added "unexpected or funny" to the prompt to spice up the variety.
         prompt = (
-            f"We are playing the Imposter game where everyone receives the same secret word "
-            f"except for one person who gets nothing. The goal is to blend in. "
-            f"Please give me one single, popular, and distinct example of a '{category}' "
-            f"that works well for this game. Respond with ONLY the word. No markdown, no punctuation."
+            f"I need a variety of options for the party game 'Imposter'. "
+            f"Give me a list of 12 distinct examples of '{category}'. "
+            f"Include a mix of popular options and some unexpected or funny ones. "
+            f"Respond with ONLY the words separated by commas. "
+            f"Do not use numbering or bullet points. "
+            f"Example output: Apple, Banana, Dragonfruit, Durian"
         )
 
+        # 1. Get the list from Gemini
         response = model.generate_content(prompt)
-        return response.text.strip()
+        text_response = response.text.strip()
+        
+        # 2. Clean and Parse: Split by comma, remove extra spaces/newlines
+        options = [word.strip() for word in text_response.split(',') if word.strip()]
+        
+        # 3. Fallback: If Gemini ignores instructions and gives empty list
+        if not options:
+            return "Error: No words found"
+            
+        # 4. Pick a random winner locally
+        # SystemRandom ensures high-quality randomness
+        secure_random = random.SystemRandom()
+        chosen_word = secure_random.choice(options)
+        
+        # Debugging: Print options to terminal so you can see what Gemini gave
+        print(f"DEBUG: Category '{category}' -> Options: {options}")
+        print(f"DEBUG: Winner: {chosen_word}")
+        
+        return chosen_word
+
     except Exception as e:
         print(f"Gemini Error: {e}")
-        return "Error: Gemini Failed"
+        return "Apple" # Ultimate fallback
 
 
 
