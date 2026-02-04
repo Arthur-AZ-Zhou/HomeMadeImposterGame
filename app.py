@@ -26,11 +26,11 @@ GAME_STATE = {
 def gemini_api_call(category):
     try:
         # UPDATED STRATEGY: 
-        # 1. Ask for a list of 20 items to prevent getting the same "top result" every time.
+        # 1. Ask for a list of 25 items to prevent getting the same "top result" every time.
         # 2. Added "unexpected or funny" to the prompt to spice up the variety.
         prompt = (
             f"I need a variety of options for the party game 'Imposter'. "
-            f"Give me a list of 20 distinct examples of '{category}'. "
+            f"Give me a list of 25 distinct examples of '{category}'. "
             f"Include a mix of popular options and some unpopular ones. "
             f"Respond with ONLY the words separated by commas. "
             f"Do not use numbering or bullet points. "
