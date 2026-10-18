@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv('app_secret_key', 'super_secret_local_key')
-
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
 model = genai.GenerativeModel("gemini-3-flash-preview")
+
 
 GAME_STATE = {
     "status": "lobby",
@@ -21,39 +21,40 @@ GAME_STATE = {
     "last_updated": time.time()
 }
 
+NUM_OPTIONS = 25  #Number of options to rq from Gemini API
 
 
-def gemini_api_call(category):
+
+def gemini_api_call(category: str) -> str:
+    '''Calls Gemini API to get list of words then picks random one
+
+    Args:
+        category (str): category of words to rq from Gemini
+        
+    Returns:
+        str: random chosen word Gemini's list
+    '''
+    
     try:
-        # UPDATED STRATEGY: 
-        # 1. Ask for a list of 25 items to prevent getting the same "top result" every time.
-        # 2. Added "unexpected or funny" to the prompt to spice up the variety.
         prompt = (
             f"I need a variety of options for the party game 'Imposter'. "
-            f"Give me a list of 25 distinct examples of '{category}'. "
+            f"Give me a list of {NUM_OPTIONS} distinct examples of '{category}'. "
             f"Include a mix of popular options and some unpopular ones. "
             f"Respond with ONLY the words separated by commas. "
             f"Do not use numbering or bullet points. "
             f"Example output: Apple, Banana, Dragonfruit, Durian"
         )
 
-        # 1. Get the list from Gemini
-        response = model.generate_content(prompt)
+        #get and clean list from Gemini
+        response = model.generate_content(prompt) 
         text_response = response.text.strip()
-        
-        # 2. Clean and Parse: Split by comma, remove extra spaces/newlines
         options = [word.strip() for word in text_response.split(',') if word.strip()]
         
-        # 3. Fallback: If Gemini ignores instructions and gives empty list
         if not options:
             return "Error: No words found"
             
-        # 4. Pick a random winner locally
-        # SystemRandom ensures high-quality randomness
         secure_random = random.SystemRandom()
         chosen_word = secure_random.choice(options)
-        
-        # Debugging: Print options to terminal so you can see what Gemini gave
         print(f"DEBUG: Category '{category}' -> Options: {options}")
         print(f"DEBUG: Winner: {chosen_word}")
         
@@ -75,9 +76,13 @@ def host():
     return render_template('host.html')
 
 
-
 @app.route('/api/join', methods=['POST'])
-def join_game():
+def join_game() -> jsonify:
+    '''Adds a player to the game, triggered upon button click in player.html
+
+    Returns:
+        jsonify: JSON status response of operation
+    '''
     data = request.json
     name = data.get('name', '').strip().upper()
     
@@ -92,9 +97,13 @@ def join_game():
     return jsonify({"success": True, "name": name})
 
 
-
 @app.route('/api/status', methods=['GET'])
-def get_status():
+def get_status() -> jsonify:
+    '''Returns the current game state, including player roles and secret word if applicable
+    
+    Returns:
+        jsonify: JSON representation of the current game state
+    '''
     player_name = request.headers.get('X-Player-Name')
     
     response = {
@@ -117,7 +126,13 @@ def get_status():
 
 
 @app.route('/api/start', methods=['POST'])
-def start_game():
+def start_game() -> jsonify:
+    '''Starts the game, triggered upon button click in host.html
+    
+    Returns:
+        jsonify: JSON status response of operation
+    '''
+
     data = request.json
     category = data.get('category')
     
@@ -139,7 +154,14 @@ def start_game():
 @app.route('/api/reset', methods=['POST'])
 
 
-def reset_game():
+
+def reset_game() -> jsonify:
+    '''Resets game, triggered upon button click in host.html, POST rq to avoid accidental resets from GETs
+
+    Returns:
+        jsonify: JSON status response of operation
+    '''
+
     GAME_STATE['status'] = 'lobby'
     GAME_STATE['players'] = []
     GAME_STATE['imposter'] = ""
