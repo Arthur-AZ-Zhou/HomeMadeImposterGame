@@ -45,7 +45,7 @@ def gemini_api_call(category: str) -> str:
             f"Example output: Apple, Banana, Dragonfruit, Durian"
         )
 
-        #get and clean list from Gemini
+        #get and clean list from Gemini API
         response = model.generate_content(prompt) 
         text_response = response.text.strip()
         options = [word.strip() for word in text_response.split(',') if word.strip()]
